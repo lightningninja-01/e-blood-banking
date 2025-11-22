@@ -1,104 +1,97 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-require("dotenv").config();
+// server.js — single repo: static frontend + simple file-db API
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+
+const DB_FILE = path.join(__dirname, 'db.json');
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+function readDB() {
+  try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
+  catch (e) { return { donors: [], requests: [], inventory: {} }; }
+}
+function writeDB(db) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
+if (!fs.existsSync(DB_FILE)) writeDB(readDB());
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(PUBLIC_DIR)); // serve frontend
 
-// MongoDB
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/eblood";
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error("MongoDB connect error:", err));
+function load() { return readDB(); }
+function save(db) { writeDB(db); }
 
-// Models
-const Donor = mongoose.model("Donor", new mongoose.Schema({
-  name: String, age: Number, blood: String, contact: String
-}));
-
-const Request = mongoose.model("Request", new mongoose.Schema({
-  name: String, blood: String, qty: Number, loc: String, contact: String,
-  status: { type: String, default: "pending" }, createdAt: { type: Date, default: Date.now }
-}));
-
-const Inventory = mongoose.model("Inventory", new mongoose.Schema({
-  data: { type: Object }
-}));
-
-// Ensure single inventory document
-async function getInventory(){
-  let doc = await Inventory.findOne();
-  if(!doc){
-    doc = new Inventory({ data: {
-      "A+":5,"A-":2,"B+":4,"B-":2,"O+":8,"O-":3,"AB+":2,"AB-":1
-    }});
-    await doc.save();
-  }
-  return doc;
-}
-
-// Routes
-app.get("/inventory", async (req,res) => {
-  const inv = await getInventory();
-  res.json(inv.data);
+// API
+app.get('/api/inventory', (req, res) => {
+  const db = load();
+  res.json(db.inventory);
 });
 
-app.post("/inventory/add", async (req,res) => {
-  const { group, qty=1 } = req.body;
-  const inv = await getInventory();
-  inv.data[group] = (inv.data[group]||0) + Number(qty);
-  await inv.save();
-  res.json({ group, qty: inv.data[group] });
+app.post('/api/inventory/add', (req, res) => {
+  const { group, qty = 1 } = req.body;
+  const db = load();
+  db.inventory[group] = (db.inventory[group] || 0) + Number(qty);
+  save(db);
+  res.json({ group, qty: db.inventory[group] });
 });
 
-app.post("/inventory/remove", async (req,res) => {
-  const { group, qty=1 } = req.body;
-  const inv = await getInventory();
-  inv.data[group] = Math.max(0, (inv.data[group]||0) - Number(qty));
-  await inv.save();
-  res.json({ group, qty: inv.data[group] });
+app.post('/api/inventory/remove', (req, res) => {
+  const { group, qty = 1 } = req.body;
+  const db = load();
+  db.inventory[group] = Math.max(0, (db.inventory[group] || 0) - Number(qty));
+  save(db);
+  res.json({ group, qty: db.inventory[group] });
 });
 
-app.post("/donors", async (req,res) => {
-  const d = new Donor(req.body || {});
-  await d.save();
-  const inv = await getInventory();
-  inv.data[d.blood] = (inv.data[d.blood]||0) + 1; // donation adds 1 unit (demo)
-  await inv.save();
-  res.json(d);
+app.get('/api/donors', (req, res) => {
+  const db = load();
+  res.json(db.donors);
 });
 
-app.get("/donors", async(req,res) => {
-  const list = await Donor.find().sort({ _id:-1 });
-  res.json(list);
+app.post('/api/donors', (req, res) => {
+  const db = load();
+  const donor = { ...req.body, id: Date.now().toString(), createdAt: new Date().toISOString() };
+  db.donors.unshift(donor);
+  // demo: when donor registers, add 1 unit to inventory
+  db.inventory[donor.blood] = (db.inventory[donor.blood] || 0) + 1;
+  save(db);
+  res.json(donor);
 });
 
-app.delete("/donors/:id", async(req,res) => {
-  await Donor.findByIdAndDelete(req.params.id);
+app.delete('/api/donors/:id', (req, res) => {
+  const id = req.params.id;
+  const db = load();
+  db.donors = db.donors.filter(d => d.id !== id && d._id !== id);
+  save(db);
   res.json({ ok: true });
 });
 
-app.post("/requests", async(req,res) => {
-  const r = new Request(req.body || {});
-  const inv = await getInventory();
-  const available = inv.data[r.blood] || 0;
-  if(available >= Number(r.qty)){
-    inv.data[r.blood] = available - Number(r.qty);
-    r.status = "fulfilled";
-    await inv.save();
+app.get('/api/requests', (req, res) => {
+  const db = load();
+  res.json(db.requests);
+});
+
+app.post('/api/requests', (req, res) => {
+  const db = load();
+  const r = { ...req.body, id: Date.now().toString(), status: 'pending', createdAt: new Date().toISOString() };
+  const avail = db.inventory[r.blood] || 0;
+  if (avail >= Number(r.qty)) {
+    db.inventory[r.blood] = avail - Number(r.qty);
+    r.status = 'fulfilled';
   }
-  await r.save();
-  res.json({ request: r, message: r.status === "fulfilled" ? `Allocated ${r.qty} unit(s)` : `Not enough inventory. Available: ${available}` });
+  db.requests.unshift(r);
+  save(db);
+  res.json({ request: r, message: r.status === 'fulfilled' ? `Allocated ${r.qty} unit(s)` : `Not enough inventory. Available: ${avail}` });
 });
 
-app.get("/requests", async(req,res) => {
-  const list = await Request.find().sort({createdAt:-1});
-  res.json(list);
+// fallback to index.html for SPA routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-app.get("/", (req,res) => res.send("eBlood backend running"));
-
+// listen (Render provides PORT in env)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
