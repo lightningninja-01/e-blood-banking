@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>e-Blood Banking</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>e-Blood Banking</h1>
+    <nav>
+      <button data-view="home" class="nav-btn">Home</button>
+      <button data-view="donor" class="nav-btn">Register Donor</button>
+      <button data-view="request" class="nav-btn">Request Blood</button>
+      <button data-view="inventory" class="nav-btn">Inventory</button>
+    </nav>
+  </header>
+
+  <main id="app">
+    <section id="view-home" class="view active">
+      <h2>Welcome</h2>
+      <p>Demo built from SRS. Download SRS (if uploaded to repo): <a href="./2301010176_TARUN YADAV SRS .pdf">SRS PDF</a></p>
+      <div class="quick-cards">
+        <div class="card">
+          <h3>Current Inventory</h3>
+          <div id="dash-inv"></div>
+          <button data-view="inventory" class="small">View inventory</button>
+        </div>
+        <div class="card">
+          <h3>Quick Actions</h3>
+          <button data-view="donor" class="small">Register as donor</button>
+          <button data-view="request" class="small">Place blood request</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-donor" class="view">
+      <h2>Donor Registration</h2>
+      <form id="donor-form" class="form">
+        <label>Full name <input type="text" id="donor-name" required /></label>
+        <label>Age <input type="number" id="donor-age" min="18" max="65" required /></label>
+        <label>Blood group
+          <select id="donor-group" required>
+            <option value="">Select</option>
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+          </select>
+        </label>
+        <label>Contact <input type="text" id="donor-contact" required /></label>
+        <div class="row">
+          <button type="submit">Register Donor</button>
+          <button type="button" id="prefill-donor">Add sample donor</button>
+        </div>
+      </form>
+      <div id="donor-list" class="list"></div>
+    </section>
+
+    <section id="view-request" class="view">
+      <h2>Request Blood</h2>
+      <form id="request-form" class="form">
+        <label>Requester name <input type="text" id="req-name" required /></label>
+        <label>Blood group needed
+          <select id="req-group" required>
+            <option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+          </select>
+        </label>
+        <label>Quantity (units) <input type="number" id="req-qty" min="1" value="1" required /></label>
+        <label>Location / Hospital <input type="text" id="req-loc" required /></label>
+        <label>Contact <input type="text" id="req-contact" required /></label>
+        <div class="row">
+          <button type="submit">Place Request</button>
+          <button type="button" id="match-blood">Auto-match donors</button>
+        </div>
+      </form>
+      <div id="request-results" class="list"></div>
+    </section>
+
+    <section id="view-inventory" class="view">
+      <h2>Inventory</h2>
+      <div class="inventory-controls">
+        <label>Search blood type
+          <select id="search-group"><option value="">All</option>
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+          </select>
+        </label>
+        <button id="reset-sample">Reset sample inventory</button>
+      </div>
+      <div id="inventory-list" class="list"></div>
+    </section>
+  </main>
+
+  <footer class="footer"><small>Demo — file-backed backend and static frontend served from same service.</small></footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
