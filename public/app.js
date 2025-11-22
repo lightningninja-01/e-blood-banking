@@ -1,30 +1,10 @@
-// app.js — fixed navigation + load-on-demand
+// public/app.js — unified data-view binding + lazy-loading behavior
 const API = '/api';
 
 function qs(s){ return document.querySelector(s) }
 function qsa(s){ return Array.from(document.querySelectorAll(s)) }
 
-// SPA navigation
-qsa('.nav-btn').forEach(b => {
-  b.addEventListener('click', (e) => {
-    qsa('.nav-btn').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    const view = b.dataset.view;
-    showView(view);
-  });
-});
-function showView(id){
-  qsa('.view').forEach(v => {
-    const is = v.id === 'view-'+id;
-    v.classList.toggle('active', is);
-    v.setAttribute('aria-hidden', !is);
-  });
-  // lazy load data per view
-  if(id === 'inventory') loadInventory();
-  if(id === 'donor') loadDonors();
-}
-
-// toasts
+// toast helper
 const toastRoot = (() => {
   let t = qs('#toast');
   if(!t){ t = document.createElement('div'); t.id='toast'; document.body.appendChild(t) }
@@ -34,6 +14,30 @@ function toast(msg, type='success'){
   const el = document.createElement('div'); el.className = 'toast ' + (type==='success'?'success':'error'); el.textContent = msg;
   toastRoot.prepend(el); setTimeout(()=> el.remove(), 3000);
 }
+
+// showView toggles views and lazy-loads data when necessary
+function showView(id){
+  qsa('.view').forEach(v => {
+    const is = v.id === 'view-'+id;
+    v.classList.toggle('active', is);
+    v.setAttribute('aria-hidden', !is);
+  });
+  if(id === 'inventory') loadInventory();
+  if(id === 'donor') loadDonors();
+}
+
+// Bind all elements with data-view (nav buttons + small quick-action buttons)
+qsa('[data-view]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    const view = el.dataset.view;
+    if(!view) return;
+    // update active state only for nav buttons styling
+    qsa('.nav-btn').forEach(nb => nb.classList.toggle('active', nb === el));
+    showView(view);
+    // Prevent default for buttons inside forms or anchors
+    if(e.target.tagName.toLowerCase() === 'a') e.preventDefault();
+  });
+});
 
 // Donor form
 qs('#donor-form').addEventListener('submit', async (e) => {
@@ -54,6 +58,7 @@ qs('#donor-form').addEventListener('submit', async (e) => {
   } catch(e){ toast('Could not register donor','error') }
 });
 
+// Prefill donor
 qs('#prefill-donor').addEventListener('click', async () => {
   const sample = { name:'John Doe', age:30, blood:'O+', contact:'9876543210' };
   await fetch(API + '/donors', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sample) });
@@ -76,10 +81,12 @@ qs('#request-form').addEventListener('submit', async (e) => {
     const data = await res.json();
     toast(data.message || 'Request placed','success');
     qs('#request-form').reset();
-    if(document.querySelector('#view-inventory').classList.contains('active')) loadInventory();
+    // if inventory view is open, refresh it
+    if(qs('#view-inventory').classList.contains('active')) loadInventory();
   } catch(e){ toast('Could not place request','error') }
 });
 
+// Match donors button
 qs('#match-blood').addEventListener('click', async ()=>{
   const blood = qs('#req-group').value;
   if(!blood){ toast('Choose blood group first','error'); return }
@@ -94,6 +101,7 @@ qs('#match-blood').addEventListener('click', async ()=>{
   });
 });
 
+// contact donor helper
 window.contactDonor = (c) => toast('Contact: ' + c, 'success');
 
 // Loaders
@@ -132,12 +140,8 @@ window.changeUnits = async function(group, delta){
   toast('Inventory updated','success'); loadInventory();
 }
 
-qs('#search-group').addEventListener('change', (e) => {
-  // simple filter: reload and hide non matching using redraw
-  loadInventory();
-});
+qs('#search-group')?.addEventListener('change', (e) => loadInventory());
+qs('#reset-sample')?.addEventListener('click', () => { alert('To reset inventory edit db.json in repo and redeploy.'); });
 
-qs('#reset-sample').addEventListener('click', () => { alert('To reset inventory edit db.json in repo and redeploy.'); });
-
-// init — show home only
+// init — show home
 showView('home');
