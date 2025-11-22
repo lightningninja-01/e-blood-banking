@@ -7,37 +7,43 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <h1>e-Blood Banking</h1>
-    <nav>
-      <button data-view="home" class="nav-btn">Home</button>
-      <button data-view="donor" class="nav-btn">Register Donor</button>
-      <button data-view="request" class="nav-btn">Request Blood</button>
-      <button data-view="inventory" class="nav-btn">Inventory</button>
+  <header class="topbar container" role="banner">
+    <div class="brand">
+      <strong>e-Blood Banking</strong>
+    </div>
+
+    <nav class="nav" role="navigation" aria-label="Main">
+      <button class="nav-btn active" data-view="home">Home</button>
+      <button class="nav-btn" data-view="donor">Register Donor</button>
+      <button class="nav-btn" data-view="request">Request Blood</button>
+      <button class="nav-btn" data-view="inventory">Inventory</button>
     </nav>
   </header>
 
-  <main id="app">
+  <main class="container" id="app" role="main">
     <section id="view-home" class="view active">
       <h2>Welcome</h2>
-      <p>Demo built from SRS. Download SRS (if uploaded to repo): <a href="./2301010176_TARUN YADAV SRS .pdf">SRS PDF</a></p>
+      <p class="muted">Demo interface for the e-Blood Banking system.</p>
+
       <div class="quick-cards">
         <div class="card">
-          <h3>Current Inventory</h3>
-          <div id="dash-inv"></div>
-          <button data-view="inventory" class="small">View inventory</button>
-        </div>
-        <div class="card">
           <h3>Quick Actions</h3>
-          <button data-view="donor" class="small">Register as donor</button>
-          <button data-view="request" class="small">Place blood request</button>
+          <div style="margin-top:8px">
+            <button class="small" data-view="donor">Register as donor</button>
+            <button class="small" data-view="request">Place blood request</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Status</h3>
+          <p class="muted">Use the navigation to register donors, request blood, or view inventory.</p>
         </div>
       </div>
     </section>
 
-    <section id="view-donor" class="view">
+    <section id="view-donor" class="view" aria-hidden="true">
       <h2>Donor Registration</h2>
-      <form id="donor-form" class="form">
+      <form id="donor-form" class="form" autocomplete="off">
         <label>Full name <input type="text" id="donor-name" required /></label>
         <label>Age <input type="number" id="donor-age" min="18" max="65" required /></label>
         <label>Blood group
@@ -48,16 +54,16 @@
         </label>
         <label>Contact <input type="text" id="donor-contact" required /></label>
         <div class="row">
-          <button type="submit">Register Donor</button>
-          <button type="button" id="prefill-donor">Add sample donor</button>
+          <button type="submit" class="btn">Register Donor</button>
+          <button type="button" id="prefill-donor" class="nav-btn">Add sample donor</button>
         </div>
       </form>
       <div id="donor-list" class="list"></div>
     </section>
 
-    <section id="view-request" class="view">
+    <section id="view-request" class="view" aria-hidden="true">
       <h2>Request Blood</h2>
-      <form id="request-form" class="form">
+      <form id="request-form" class="form" autocomplete="off">
         <label>Requester name <input type="text" id="req-name" required /></label>
         <label>Blood group needed
           <select id="req-group" required>
@@ -68,28 +74,31 @@
         <label>Location / Hospital <input type="text" id="req-loc" required /></label>
         <label>Contact <input type="text" id="req-contact" required /></label>
         <div class="row">
-          <button type="submit">Place Request</button>
-          <button type="button" id="match-blood">Auto-match donors</button>
+          <button type="submit" class="btn">Place Request</button>
+          <button type="button" id="match-blood" class="nav-btn">Auto-match donors</button>
         </div>
       </form>
       <div id="request-results" class="list"></div>
     </section>
 
-    <section id="view-inventory" class="view">
+    <section id="view-inventory" class="view" aria-hidden="true">
       <h2>Inventory</h2>
       <div class="inventory-controls">
-        <label>Search blood type
+        <label>Filter
           <select id="search-group"><option value="">All</option>
             <option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
           </select>
         </label>
-        <button id="reset-sample">Reset sample inventory</button>
+        <button id="reset-sample" class="nav-btn">Reset sample</button>
       </div>
-      <div id="inventory-list" class="list"></div>
+      <div id="inventory-list" class="list" style="margin-top:12px"></div>
     </section>
   </main>
 
-  <footer class="footer"><small>Demo — file-backed backend and static frontend served from same service.</small></footer>
+  <footer class="footer container"><small>Demo — file-backed backend and static frontend served from same service.</small></footer>
+
+  <!-- toast container -->
+  <div id="toast" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
